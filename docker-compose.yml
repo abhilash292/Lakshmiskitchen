@@ -1,0 +1,83 @@
+services:
+
+  postgres-users:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: lakshmiskitchen
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: usersdb
+    volumes:
+      - users-data:/var/lib/postgresql/data
+
+  postgres-menu:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: lakshmiskitchen
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: menudb
+    volumes:
+      - menu-data:/var/lib/postgresql/data
+
+  postgres-orders:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: lakshmiskitchen
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: ordersdb
+    volumes:
+      - orders-data:/var/lib/postgresql/data
+
+  postgres-payments:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: lakshmiskitchen
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: paymentsdb
+    volumes:
+      - payments-data:/var/lib/postgresql/data
+
+  user-service:
+    build: ./services/user-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-users:5432/usersdb
+    depends_on:
+      - postgres-users
+
+  menu-service:
+    build: ./services/menu-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-menu:5432/menudb
+    depends_on:
+      - postgres-menu
+
+  order-service:
+    build: ./services/order-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-orders:5432/ordersdb
+      MENU_SERVICE_URL: http://menu-service:8082
+    depends_on:
+      - postgres-orders
+      - menu-service
+
+  payment-service:
+    build: ./services/payment-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payments:5432/paymentsdb
+      ORDER_SERVICE_URL: http://order-service:8083
+    depends_on:
+      - postgres-payments
+      - order-service
+
+volumes:
+  users-data:
+  menu-data:
+  orders-data:
+  payments-data:
