@@ -1,6 +1,7 @@
 package com.lakshmiskitchen.userservice.service;
 
 import com.lakshmiskitchen.userservice.dto.LoginRequest;
+import com.lakshmiskitchen.userservice.dto.LoginResponse;
 import com.lakshmiskitchen.userservice.dto.RegisterRequest;
 import com.lakshmiskitchen.userservice.dto.UserResponse;
 import com.lakshmiskitchen.userservice.entity.User;
@@ -15,6 +16,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
@@ -32,7 +34,7 @@ public class UserService {
         return toResponse(saved);
     }
 
-    public UserResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
 
@@ -40,7 +42,8 @@ public class UserService {
             throw new IllegalArgumentException("Invalid email or password");
         }
 
-        return toResponse(user);
+        String token = jwtService.generateToken(user.getId(), user.getEmail(), user.getRole());
+        return new LoginResponse(token, toResponse(user));
     }
 
     private UserResponse toResponse(User user) {

@@ -1,6 +1,7 @@
 package com.lakshmiskitchen.userservice.controller;
 
 import com.lakshmiskitchen.userservice.dto.LoginRequest;
+import com.lakshmiskitchen.userservice.dto.LoginResponse;
 import com.lakshmiskitchen.userservice.dto.RegisterRequest;
 import com.lakshmiskitchen.userservice.dto.UserResponse;
 import com.lakshmiskitchen.userservice.service.UserService;
@@ -23,7 +24,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(userService.login(request));
     }
 }
