@@ -5,8 +5,10 @@ import com.lakshmiskitchen.orderservice.dto.OrderDtos.*;
 import com.lakshmiskitchen.orderservice.entity.Order;
 import com.lakshmiskitchen.orderservice.entity.OrderItem;
 import com.lakshmiskitchen.orderservice.entity.OrderStatus;
+import com.lakshmiskitchen.orderservice.event.OrderPlacedEvent;
 import com.lakshmiskitchen.orderservice.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -19,6 +21,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final MenuClient menuClient;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public OrderResponse createOrder(CreateOrderRequest request) {
         List<OrderItem> orderItems = new ArrayList<>();
@@ -49,7 +52,20 @@ public class OrderService {
                 .totalAmount(total)
                 .build();
 
-        return toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+
+        // Announce to the world: an order was placed!
+        OrderPlacedEvent event = new OrderPlacedEvent(
+                saved.getId(),
+                saved.getUserId(),
+                saved.getCustomerEmail(),
+                saved.getItems().stream().map(OrderItem::getName).toList(),
+                saved.getTotalAmount(),
+                saved.getCreatedAt()
+        );
+        kafkaTemplate.send("order-events", event);
+
+        return toResponse(saved);
     }
 
     public OrderResponse getById(String id) {
