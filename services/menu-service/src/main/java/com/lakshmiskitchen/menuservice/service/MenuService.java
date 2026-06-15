@@ -5,6 +5,8 @@ import com.lakshmiskitchen.menuservice.dto.MenuItemResponse;
 import com.lakshmiskitchen.menuservice.entity.MenuItem;
 import com.lakshmiskitchen.menuservice.repository.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,6 +17,7 @@ public class MenuService {
 
     private final MenuItemRepository repository;
 
+    @CacheEvict(value = "menu", allEntries = true)
     public MenuItemResponse create(MenuItemRequest request) {
         MenuItem item = MenuItem.builder()
                 .name(request.name())
@@ -26,6 +29,7 @@ public class MenuService {
         return toResponse(repository.save(item));
     }
 
+    @Cacheable(value = "menu")
     public List<MenuItemResponse> getAll() {
         return repository.findAll().stream().map(this::toResponse).toList();
     }
@@ -36,6 +40,7 @@ public class MenuService {
                 .orElseThrow(() -> new IllegalArgumentException("Menu item not found"));
     }
 
+    @CacheEvict(value = "menu", allEntries = true)
     public MenuItemResponse update(String id, MenuItemRequest request) {
         MenuItem item = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Menu item not found"));
@@ -47,6 +52,7 @@ public class MenuService {
         return toResponse(repository.save(item));
     }
 
+    @CacheEvict(value = "menu", allEntries = true)
     public void delete(String id) {
         if (!repository.existsById(id)) {
             throw new IllegalArgumentException("Menu item not found");
