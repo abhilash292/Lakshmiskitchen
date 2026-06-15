@@ -1,5 +1,4 @@
 package com.lakshmiskitchen.orderservice.controller;
-
 import com.lakshmiskitchen.orderservice.dto.OrderDtos.*;
 import com.lakshmiskitchen.orderservice.service.OrderService;
 import jakarta.validation.Valid;
@@ -7,19 +6,22 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
 public class OrderController {
-
     private final OrderService orderService;
 
     @PostMapping
     public ResponseEntity<OrderResponse> create(@Valid @RequestBody CreateOrderRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(request));
+    }
+
+    @GetMapping
+    public List<OrderResponse> getAll() {
+        return orderService.getAllOrders();
     }
 
     @GetMapping("/{id}")

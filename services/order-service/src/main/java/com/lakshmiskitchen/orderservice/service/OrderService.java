@@ -1,5 +1,4 @@
 package com.lakshmiskitchen.orderservice.service;
-
 import com.lakshmiskitchen.orderservice.client.MenuClient;
 import com.lakshmiskitchen.orderservice.dto.OrderDtos.*;
 import com.lakshmiskitchen.orderservice.entity.Order;
@@ -10,7 +9,6 @@ import com.lakshmiskitchen.orderservice.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +16,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class OrderService {
-
     private final OrderRepository orderRepository;
     private final MenuClient menuClient;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -26,35 +23,27 @@ public class OrderService {
     public OrderResponse createOrder(CreateOrderRequest request) {
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
-
         for (OrderItemRequest itemReq : request.items()) {
             MenuItemDto menuItem = menuClient.getMenuItem(itemReq.menuItemId());
-
             if (!menuItem.available()) {
                 throw new IllegalArgumentException(menuItem.name() + " is currently unavailable");
             }
-
             OrderItem orderItem = OrderItem.builder()
                     .menuItemId(menuItem.id())
                     .name(menuItem.name())
                     .price(menuItem.price())
                     .quantity(itemReq.quantity())
                     .build();
-
             orderItems.add(orderItem);
             total = total.add(menuItem.price().multiply(BigDecimal.valueOf(itemReq.quantity())));
         }
-
         Order order = Order.builder()
                 .userId(request.userId())
                 .customerEmail(request.customerEmail())
                 .items(orderItems)
                 .totalAmount(total)
                 .build();
-
         Order saved = orderRepository.save(order);
-
-        // Announce to the world: an order was placed!
         OrderPlacedEvent event = new OrderPlacedEvent(
                 saved.getId(),
                 saved.getUserId(),
@@ -64,8 +53,12 @@ public class OrderService {
                 saved.getCreatedAt()
         );
         kafkaTemplate.send("order-events", event);
-
         return toResponse(saved);
+    }
+
+    public List<OrderResponse> getAllOrders() {
+        return orderRepository.findAll()
+                .stream().map(this::toResponse).toList();
     }
 
     public OrderResponse getById(String id) {
@@ -85,7 +78,7 @@ public class OrderService {
         try {
             order.setStatus(OrderStatus.valueOf(request.status().toUpperCase()));
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid status. Valid: PLACED, PREPARING, OUT_FOR_DELIVERY, DELIVERED, CANCELLED");
+            throw new IllegalArgumentException("Invalid status: PLACED, PREPARING, OUT_FOR_DELIVERY, DELIVERED, CANCELLED");
         }
         return toResponse(orderRepository.save(order));
     }
